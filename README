@@ -1,0 +1,6 @@
+This is an assortment of Erlang rellated benchmarks
+
+Assuming you have Erlang installed, you can just execute the applicable escript
+to view the results.
+
+Of course, review the source before you execute anything!

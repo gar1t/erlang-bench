@@ -11,6 +11,8 @@
 %%%  string_tokens: 3972
 %%%  uncompiled_re_split: 7837
 %%%  compiled_re_split: 12006
+%%%  binary_split: 4998
+%%%  binary_split_with_convert: 11005
 %%%
 %%% It's quite surprising that the compiled regex is several times slower
 %%% the uncompiled regex.
@@ -31,7 +33,9 @@
 main(_) ->
     test_string_tokens(),
     test_uncompiled_re_split(),
-    test_compiled_re_split().    
+    test_compiled_re_split(),    
+    test_bin_split(),
+    test_convert_bin_split().
 
 test_string_tokens() ->
     F = fun() -> string_tokenize(?STRINGS, ?COMMA) end,
@@ -53,7 +57,29 @@ re_split([], _Pattern) -> ok.
 
 test_compiled_re_split() ->
     F = fun() -> re_split(?STRINGS, ?COMMA_REGEX) end,
-    print_result("compiled_re_split", tc(F)).    
+    print_result("compiled_re_split", tc(F)).
+
+test_bin_split() ->
+    BinStrings = [list_to_binary(S) || S <- ?STRINGS],
+    BinComma = list_to_binary(?COMMA),
+    F = fun() -> bin_split(BinStrings, BinComma) end,
+    print_result("binary_split", tc(F)).
+
+bin_split([S|Rest], Sep) ->
+    binary:split(S, Sep, [global]),
+    bin_split(Rest, Sep);
+bin_split([], _Sep) -> ok.
+
+test_convert_bin_split() ->
+    F = fun() -> convert_bin_split(?STRINGS, ?COMMA) end,
+    print_result("binary_split_with_convert", tc(F)).
+
+convert_bin_split([S|Rest], Sep) ->
+    SBin = list_to_binary(S),
+    SepBin = list_to_binary(Sep),
+    [binary_to_list(Part) || Part <- binary:split(SBin, SepBin, [global])],
+    convert_bin_split(Rest, Sep);
+convert_bin_split([], _Sep) -> ok.
 
 tc(Check) ->
     timer:tc(fun() -> repeat(?TRIALS, Check) end).

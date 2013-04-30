@@ -1,4 +1,4 @@
-#!/usr/bin/escript
+#!/usr/bin/env escript
 %%%
 %%% This test is driven by erlydtl's inability to support yesno filter with
 %%% empty values. E.g. "var|yesno:'if-true,'" will fail. It shouldn't.
@@ -16,6 +16,8 @@
 %%%
 %%% It's quite surprising that the compiled regex is several times slower
 %%% the uncompiled regex.
+
+-include("bench.hrl").
 
 -define(TRIALS, 100000).
 -define(STRINGS,
@@ -38,8 +40,10 @@ main(_) ->
     test_convert_bin_split().
 
 test_string_tokens() ->
-    F = fun() -> string_tokenize(?STRINGS, ?COMMA) end,
-    print_result("string_tokens", tc(F)).
+    bench(
+      "string_tokens",
+      fun() -> string_tokenize(?STRINGS, ?COMMA) end,
+      ?TRIALS).
 
 string_tokenize([S|Rest], Delimiter) ->
     string:tokens(S, Delimiter),
@@ -47,8 +51,10 @@ string_tokenize([S|Rest], Delimiter) ->
 string_tokenize([], _Delim) -> ok.
 
 test_uncompiled_re_split() ->
-    F = fun() -> re_split(?STRINGS, ?COMMA) end,
-    print_result("uncompiled_re_split", tc(F)).
+    bench(
+      "uncompiled_re_split",
+      fun() -> re_split(?STRINGS, ?COMMA) end,
+      ?TRIALS).
 
 re_split([S|Rest], Pattern) ->
     re:split(S, Pattern, [{return, list}]),
@@ -56,14 +62,18 @@ re_split([S|Rest], Pattern) ->
 re_split([], _Pattern) -> ok.
 
 test_compiled_re_split() ->
-    F = fun() -> re_split(?STRINGS, ?COMMA_REGEX) end,
-    print_result("compiled_re_split", tc(F)).
+    bench(
+      "compiled_re_split",
+      fun() -> re_split(?STRINGS, ?COMMA_REGEX) end,
+      ?TRIALS).
 
 test_bin_split() ->
     BinStrings = [list_to_binary(S) || S <- ?STRINGS],
     BinComma = list_to_binary(?COMMA),
-    F = fun() -> bin_split(BinStrings, BinComma) end,
-    print_result("binary_split", tc(F)).
+    bench(
+      "binary_split",
+      fun() -> bin_split(BinStrings, BinComma) end,
+      ?TRIALS).
 
 bin_split([S|Rest], Sep) ->
     binary:split(S, Sep, [global]),
@@ -71,8 +81,10 @@ bin_split([S|Rest], Sep) ->
 bin_split([], _Sep) -> ok.
 
 test_convert_bin_split() ->
-    F = fun() -> convert_bin_split(?STRINGS, ?COMMA) end,
-    print_result("binary_split_with_convert", tc(F)).
+    bench(
+      "binary_split_with_convert",
+      fun() -> convert_bin_split(?STRINGS, ?COMMA) end,
+      ?TRIALS).
 
 convert_bin_split([S|Rest], Sep) ->
     SBin = list_to_binary(S),
@@ -80,12 +92,3 @@ convert_bin_split([S|Rest], Sep) ->
     [binary_to_list(Part) || Part <- binary:split(SBin, SepBin, [global])],
     convert_bin_split(Rest, Sep);
 convert_bin_split([], _Sep) -> ok.
-
-tc(Check) ->
-    timer:tc(fun() -> repeat(?TRIALS, Check) end).
-
-repeat(0, _Fun) -> ok;
-repeat(N, Fun) -> Fun(), repeat(N - 1, Fun).
-
-print_result(Name, {Time, _}) ->
-    io:format("~s: ~w~n", [Name, Time div 1000]).

@@ -4,7 +4,7 @@
 %%% empty values. E.g. "var|yesno:'if-true,'" will fail. It shouldn't.
 %%%
 %%% The yesno filter uses string:token/2 to parse the string. I was curious
-%%% is switching to re:split/3 would cause a significant performance hit.
+%%% if switching to re:split/3 would cause a significant performance hit.
 %%%
 %%% Typical results on my laptop under R16B:
 %%%

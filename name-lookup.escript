@@ -8,22 +8,16 @@
 %%% The time measures repeated lookup of each member (to test for a match) and
 %%% a lookup of each member reverse (to test for a non match).
 %%%
-%%% My results on three trials:
+%%% These are representative of the results on my laptop (R16B)
 %%%
-%%% set: 3646
-%%% dict: 3668
-%%% list: 3554
-%%%
-%%% set: 3615
-%%% dict: 3573
-%%% list: 3458
-%%%
-%%% set: 3622
-%%% dict: 3570
-%%% list: 3514
+%%% set: 685
+%%% dict: 718
+%%% list: 396
 %%%
 %%% Interestingly, the simplest approach (use a list!) appears to be as fast
-%%% (well, faster) than the other two.
+%%% (faster) than the other two.
+%%%
+-mode(compile).
 
 -include("bench.hrl").
 
@@ -47,7 +41,7 @@
     "pidstat_system",
     "memory_ps_survivor_space_committed"]).
 
--define(TRIALS, 10000).
+-define(TRIALS, 100000).
 
 main(_) ->
     Names = ?NAMES,

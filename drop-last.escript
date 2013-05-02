@@ -7,13 +7,15 @@
 %%%
 %%% Representative of my results (laptop):
 %%%
-%%%  reverse_reverse:small_list: 1304
-%%%  reverse_reverse:big_list: 2997
-%%%  recurse:small_list: 953
-%%%  recurse:small_list: 6323
-%%%  sublist:small_list: 1529
-%%%  sublist:big_list: 5466
+%%% reverse_reverse:small_list: 166
+%%% reverse_reverse:big_list: 3017
+%%% recurse:small_list: 210
+%%% recurse:small_list: 3115
+%%% sublist:small_list: 316
+%%% sublist:big_list: 9558
 %%%
+-mode(compile).
+
 -include("bench.hrl").
 
 -define(SMALL_LIST, lists:seq(1, 100)).
@@ -50,7 +52,7 @@ test_recurse() ->
       fun() -> recurse(?BIG_LIST) end,
       ?BIG_LIST_TRIALS).
 
-recurse(_) -> [];
+recurse([_]) -> [];
 recurse([H|T]) -> [H|recurse(T)].
 
 test_sublist() ->

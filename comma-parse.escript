@@ -8,14 +8,13 @@
 %%%
 %%% Typical results on my laptop under R16B:
 %%%
-%%%  string_tokens: 3972
-%%%  uncompiled_re_split: 7837
-%%%  compiled_re_split: 12006
-%%%  binary_split: 4998
-%%%  binary_split_with_convert: 11005
+%%% string_tokens: 291
+%%% uncompiled_re_split: 2515
+%%% compiled_re_split: 2051
+%%% binary_split: 311
+%%% binary_split_with_convert: 457
 %%%
-%%% It's quite surprising that the compiled regex is several times slower
-%%% the uncompiled regex.
+-mode(compile).
 
 -include("bench.hrl").
 
@@ -89,6 +88,6 @@ test_convert_bin_split() ->
 convert_bin_split([S|Rest], Sep) ->
     SBin = list_to_binary(S),
     SepBin = list_to_binary(Sep),
-    [binary_to_list(Part) || Part <- binary:split(SBin, SepBin, [global])],
+    _ = [binary_to_list(Part) || Part <- binary:split(SBin, SepBin, [global])],
     convert_bin_split(Rest, Sep);
 convert_bin_split([], _Sep) -> ok.

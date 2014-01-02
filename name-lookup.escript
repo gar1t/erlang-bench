@@ -1,98 +1,110 @@
 #!/usr/bin/env escript
 %%% name-lookup.escript
 %%%
-%%% I had a case where I needed to test whether a value was a member of a small
-%%% set (~20) of strings. The obvious choices in Erlang for this are: set,
-%%% dict, and list.
+%%% For smallish lists of items that need to be retrieved using a simple name,
+%%% what is the fastest structure?
+%%%
+%%% proplists provide a canonical structure and are almost ubiquitous. But
+%%% proplists are just convention that are compatible with the proplists
+%%% module. Is there a substantial performance benefit to using one approach
+%%% over the other?
+%%%
+%%% And what about dict and trees?
 %%%
 %%% The time measures repeated lookup of each member (to test for a match) and
 %%% a lookup of each member reverse (to test for a non match).
 %%%
 %%% These are representative of the results on my laptop (R16B)
 %%%
-%%% set: 685
-%%% dict: 718
-%%% list: 396
+%%% proplists: 680
+%%% lists: 227
+%%% dict: 361
+%%% gb_tree: 215
 %%%
-%%% Interestingly, the simplest approach (use a list!) appears to be as fast
-%%% (faster) than the other two.
+%%% As dict and gb_tree require an initial transformation of the property list,
+%%% they might not make sense in any general case (these benchmarks only
+%%% measure lookup time and don't include the time to create the structure).
+%%%
+%%% The clear winner here is lists (this is already well known). It's curious
+%%% why proplists doesn't use lists:keyfind.
 %%%
 -mode(compile).
 
 -include("bench.hrl").
 
+-define(VALUE, 9999999).
+
 -define(
-   NAMES,
-   ["memory_heap_used",
-    "memory_ps_old_gen_committed",
-    "proc_stat",
-    "proc_rss",
-    "threads_count",
-    "classes_loaded",
-    "memory_ps_perm_gen_peakCommitted",
-    "pidstat_cpu",
-    "memory_heap_max",
-    "proc_vsz",
-    "classes_loaded",
-    "memory_ps_perm_gen_peakUsed",
-    "request_requestCount",
-    "request_processingTime",
-    "request_errorCount",
-    "pidstat_system",
-    "memory_ps_survivor_space_committed"]).
+   VALUES,
+   [{"memory_heap_used", ?VALUE},
+    {"memory_ps_old_gen_committed", ?VALUE},
+    {"proc_stat", ?VALUE},
+    {"proc_rss", ?VALUE},
+    {"threads_count", ?VALUE},
+    {"classes_loaded", ?VALUE},
+    {"memory_ps_perm_gen_peakCommitted", ?VALUE},
+    {"pidstat_cpu", ?VALUE},
+    {"memory_heap_max", ?VALUE},
+    {"proc_vsz", ?VALUE},
+    {"classes_loaded", ?VALUE},
+    {"memory_ps_perm_gen_peakUsed", ?VALUE},
+    {"request_requestCount", ?VALUE},
+    {"request_processingTime", ?VALUE},
+    {"request_errorCount", ?VALUE},
+    {"pidstat_system", ?VALUE},
+    {"memory_ps_survivor_space_committed", ?VALUE}]).
 
 -define(TRIALS, 100000).
 
 main(_) ->
-    Names = ?NAMES,
-    NotNames = reverse_each(?NAMES),
-    test_set(Names, NotNames),
-    test_dict(Names, NotNames),
-    test_list(Names, NotNames).
+    Names = [Name || {Name, _} <- ?VALUES],
+    test_proplists(Names, ?VALUES, ?VALUE),
+    test_lists(Names, ?VALUES, ?VALUE),
+    test_dict(Names, ?VALUES, ?VALUE),
+    test_tree(Names, ?VALUES, ?VALUE).
 
-reverse_each(Strings) ->
-    [lists:reverse(S) || S <- Strings].
-
-test_set(Names, NotNames) ->
-    Set = sets:from_list(Names),
+test_proplists(Names, Values, Expected) ->
     bench(
-      "set",
-      fun() ->
-              check_each_in_set(Names, true, Set),
-              check_each_in_set(NotNames, false, Set)
-      end,
+      "proplists",
+      fun() -> lookup_names_in_proplist(Names, Values, Expected) end,
       ?TRIALS).
 
-check_each_in_set([], _Expected, _Set) -> ok;
-check_each_in_set([Name|Rest], Expected, Set) ->
-    Expected = sets:is_element(Name, Set),
-    check_each_in_set(Rest, Expected, Set).
+lookup_names_in_proplist([Name|Rest], Proplist, Expected) ->
+    Expected = proplists:get_value(Name, Proplist),
+    lookup_names_in_proplist(Rest, Proplist, Expected);
+lookup_names_in_proplist([], _Proplist, _Expected) -> ok.
 
-test_dict(Names, NotNames) ->
-    Dict = dict:from_list([{Name, 0} || Name <- ?NAMES]),
+test_lists(Names, Values, Expected) ->
+    bench(
+      "lists",
+      fun() -> lookup_name_in_list(Names, Values, Expected) end,
+      ?TRIALS).
+
+lookup_name_in_list([Name|Rest], Values, Expected) ->
+    {_, Expected} = lists:keyfind(Name, 1, Values),
+    lookup_name_in_list(Rest, Values, Expected);
+lookup_name_in_list([], _Values, _Expected) -> ok.
+
+test_dict(Names, Values, Expected) ->
+    Dict = dict:from_list(Values),
     bench(
       "dict",
-      fun() ->
-              check_each_in_dict(Names, true, Dict),
-              check_each_in_dict(NotNames, false, Dict)
-      end,
+      fun() -> lookup_name_in_dict(Names, Dict, Expected) end,
       ?TRIALS).
 
-check_each_in_dict([], _Expected, _Dict) -> ok;
-check_each_in_dict([Name|Rest], Expected, Dict) ->
-    Expected = dict:is_key(Name, Dict),
-    check_each_in_dict(Rest, Expected, Dict).
+lookup_name_in_dict([Name|Rest], Dict, Expected) ->
+    {ok, Expected} = dict:find(Name, Dict),
+    lookup_name_in_dict(Rest, Dict, Expected);
+lookup_name_in_dict([], _Dict, _Expected) -> ok.
 
-test_list(Names, NotNames) ->
+test_tree(Names, Values, Expected) ->
+    Tree = gb_trees:from_orddict(lists:sort(Values)),
     bench(
-      "list",
-      fun() ->
-              check_each_in_list(Names, true, Names),
-              check_each_in_list(NotNames, false, Names)
-      end,
+      "gb_tree",
+      fun() -> lookup_name_in_tree(Names, Tree, Expected) end,
       ?TRIALS).
 
-check_each_in_list([], _Expected, _List) -> ok;
-check_each_in_list([Name|Rest], Expected, List) ->
-    Expected = lists:member(Name, List),
-    check_each_in_list(Rest, Expected, List).
+lookup_name_in_tree([Name|Rest], Tree, Expected) ->
+    {value, Expected} = gb_trees:lookup(Name, Tree),
+    lookup_name_in_tree(Rest, Tree, Expected);
+lookup_name_in_tree([], _Tree, _Expected) -> ok.

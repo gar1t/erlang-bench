@@ -15,16 +15,14 @@
 %%%
 %%% Typical results on my laptop under R16B:
 %%%
-%%% binary_match_compiled: 211
-%%% binary_match_uncompiled: 210
-%%% scan_split: 1666
-%%% scan_part: 973
-%%% scan_pattern: 206
+%%% binary_match_compiled: 56
+%%% binary_match_uncompiled: 50
+%%% scan_split: 3971
+%%% scan_part: 1638
+%%% scan_pattern: 2975
 %%%
-%%% Interesting results. binary:match/2 is quite efficient, even when using an
-%%% uncompiled pattern (I suspect a single binary is effectively the same as
-%%% 'compiled' anyway). Good old bit syntax pattern matching is also very
-%%% efficient (but still simpler to just use binary:match/2).
+%%% binary:match/2 is obviously optimizes for this. There's no material
+%%% difference between the compiled pattern and uncompiled.
 %%%
 -mode(compile).
 
@@ -33,7 +31,7 @@
 -define(NEEDLE, <<1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16>>).
 -define(NEEDLE_CP, binary:compile_pattern(?NEEDLE)).
 
--define(TRIALS, 10000).
+-define(TRIALS, 100000).
 
 main(_) ->
     test_binary_match_compiled(),
@@ -52,24 +50,27 @@ haystack() ->
     {NeedlePos, iolist_to_binary(Parts)}.
 
 test_binary_match_compiled() ->
+    Haystack = haystack(),
     bench(
       "binary_match_compiled",
-      fun() -> binary_match(?NEEDLE_CP, haystack()) end,
+      fun() -> binary_match(?NEEDLE_CP, Haystack) end,
       ?TRIALS).
 
 test_binary_match_uncompiled() ->
+    Haystack = haystack(),
     bench(
       "binary_match_uncompiled",
-      fun() -> binary_match(?NEEDLE, haystack()) end,
+      fun() -> binary_match(?NEEDLE, Haystack) end,
       ?TRIALS).
 
 binary_match(Pattern, {Pos, Haystack}) ->
     {Pos, _} = binary:match(Haystack, Pattern).
 
 test_scan_split() ->
+    Haystack = haystack(),
     bench(
       "scan_split",
-      fun() -> scan_split(?NEEDLE, haystack()) end,
+      fun() -> scan_split(?NEEDLE, Haystack) end,
       ?TRIALS).
 
 scan_split(Needle, {Pos, Haystack}) ->
@@ -86,9 +87,10 @@ scan_split(Needle, NeedleSize, Haystack, Pos, Stop) when Pos =< Stop ->
 scan_split(_, _, _, _, _) -> not_found. 
 
 test_scan_part() ->
+    Haystack = haystack(),
     bench(
       "scan_part",
-      fun() -> scan_part(?NEEDLE, haystack()) end,
+      fun() -> scan_part(?NEEDLE, Haystack) end,
       ?TRIALS).
 
 scan_part(Needle, {Pos, Haystack}) ->
@@ -105,16 +107,17 @@ scan_part(Needle, NeedleSize, Haystack, Pos, Stop) when Pos =< Stop ->
 scan_part(_, _, _, _, _) -> not_found.
 
 test_scan_pattern() ->
+    Haystack = haystack(),
     bench(
       "scan_pattern",
-      fun() -> scan_pattern(?NEEDLE, haystack()) end,
+      fun() -> scan_pattern(?NEEDLE, Haystack) end,
       ?TRIALS).
 
-scan_pattern(Needle, Haystack) ->
+scan_pattern(Needle, {Pos, Haystack}) ->
     NeedleSize = size(Needle),
     Start = 0,
     Stop = size(Haystack) - NeedleSize,
-    scan_pattern(Needle, NeedleSize, Haystack, Start, Stop).
+    Pos = scan_pattern(Needle, NeedleSize, Haystack, Start, Stop).
 
 scan_pattern(Needle, NeedleSize, Haystack, Pos, Stop) when Pos =< Stop ->
     case Haystack of

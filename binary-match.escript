@@ -6,9 +6,9 @@
 %%% efficient this is, when compared to a scan of the binary using the
 %%% split_binary or binary_part functions, or pattern matching.
 %%%
-%%% I think there are three ways to do this:
+%%% I think there are four ways to do this:
 %%%
-%%% - binary:match/2 (using compiled and not compiled patterns)
+%%% - binary:match/2 (using compiled and uncompiled patterns)
 %%% - scan using split_binary/2
 %%% - scan using binary_part/2
 %%% - scan using binary pattern matching
@@ -16,7 +16,7 @@
 %%% Typical results on my laptop under R16B:
 %%%
 %%% binary_match_compiled: 211
-%%% binary_match_not_compiled: 210
+%%% binary_match_uncompiled: 210
 %%% scan_split: 1666
 %%% scan_part: 973
 %%% scan_pattern: 206
@@ -37,7 +37,7 @@
 
 main(_) ->
     test_binary_match_compiled(),
-    test_binary_match_not_compiled(),
+    test_binary_match_uncompiled(),
     test_scan_split(),
     test_scan_part(),
     test_scan_pattern().
@@ -57,9 +57,9 @@ test_binary_match_compiled() ->
       fun() -> binary_match(?NEEDLE_CP, haystack()) end,
       ?TRIALS).
 
-test_binary_match_not_compiled() ->
+test_binary_match_uncompiled() ->
     bench(
-      "binary_match_not_compiled",
+      "binary_match_uncompiled",
       fun() -> binary_match(?NEEDLE, haystack()) end,
       ?TRIALS).
 

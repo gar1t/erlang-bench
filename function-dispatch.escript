@@ -12,8 +12,8 @@
 %%%
 %%% Typical results on my laptop under R16B:
 %%%
-%%% function_clauses: 175
-%%% dict: 580
+%%% function_clauses: 186
+%%% dict: 610
 %%%
 %%% So with a relatively small set of messages, Erlang function pattern
 %%% matching, even though it's a linear scan, seems like a better option than
@@ -105,13 +105,13 @@ dispatch("ROSO5FZihF2gpATE"=Msg) -> Msg;
 dispatch("lCVenvgW+zN4qlRh"=Msg) -> Msg.
 
 test_dict() ->
-    D = dict:from_list([{Msg, Msg} || Msg <- ?MSGS]),
+    D = dict:from_list([{Msg, fun() -> Msg end} || Msg <- ?MSGS]),
     bench(
       "dict",
       fun() -> dict(?MSGS, D) end,
       ?TRIALS).
 
 dict([Msg|Rest], Dict) ->
-    Msg = dict:fetch(Msg, Dict),
+    Msg = (dict:fetch(Msg, Dict))(),
     dict(Rest, Dict);
 dict([], _Dict) -> ok.

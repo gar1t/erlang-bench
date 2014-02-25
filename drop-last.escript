@@ -48,7 +48,7 @@ test_recurse() ->
       fun() -> recurse(?SMALL_LIST) end,
       ?SMALL_LIST_TRIALS),
     bench(
-      "recurse:small_list",
+      "recurse:big_list",
       fun() -> recurse(?BIG_LIST) end,
       ?BIG_LIST_TRIALS).
 

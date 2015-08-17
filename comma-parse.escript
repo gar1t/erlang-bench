@@ -25,11 +25,6 @@
          "yes,,",
          "01234567890123456789,01234567890123456789,01234567890123456789"]).
 -define(COMMA, ",").
--define(COMMA_REGEX,
-        {re_pattern,0,0,
-         <<69,82,67,80,57,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,44,0,0,0,48,0,
-           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,93,0,5,27,44,
-           84,0,5,0>>}).
 
 main(_) ->
     test_string_tokens(),
@@ -61,9 +56,10 @@ re_split([S|Rest], Pattern) ->
 re_split([], _Pattern) -> ok.
 
 test_compiled_re_split() ->
+    {ok, COMMA_REGEX} = re:compile(?COMMA),
     bench(
       "compiled_re_split",
-      fun() -> re_split(?STRINGS, ?COMMA_REGEX) end,
+      fun() -> re_split(?STRINGS, COMMA_REGEX) end,
       ?TRIALS).
 
 test_bin_split() ->

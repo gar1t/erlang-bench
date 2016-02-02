@@ -1,13 +1,14 @@
 #!/usr/bin/env escript
 %%%
-%%% In Erlang you generally don't want to flatten lists to create a plesant
-%%% looking "string" - iolists typically work fine with string processing
-%%% functions in the core library.
+%%% In Erlang you generally don't want to flatten lists to create a
+%%% pleasant looking "string" - iolists typically work fine with
+%%% string processing functions in the core library.
 %%%
-%%% But what happens when you want to compare a couple strings for euivalence?
-%%% Looking over the lists and strings modules, there doesn't appear to be a
-%%% function for this. Assuming there isn't a better way to compare two
-%%% strings, we need to ensure that both are flattened.
+%%% But what happens when you want to compare a couple strings for
+%%% equivalence? Looking over the lists and strings modules, there
+%%% doesn't appear to be a function for this. Assuming there isn't a
+%%% better way to compare two strings, we need to ensure that both are
+%%% flattened.
 %%%
 %%% Typical results on my laptop under R16B:
 %%%

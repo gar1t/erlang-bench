@@ -1,0 +1,80 @@
+#!/usr/bin/env escript
+%%%
+%%% What's the most efficient way to concat a bunch of lists?
+%%%
+%%% A few options come to mind:
+%%%
+%%% - lists:concat/1
+%%% - L1 ++ L2 ++ ...
+%%% - Cons plus reverse
+%%%
+%%% Typical results on my laptop on Erlang/OTP 18 are:
+%%%
+%%% concat: 7.670 us (130379.80 per second)
+%%% plusplus: 237.529 us (4210.01 per second)
+%%% cons: 12.969 us (77105.76 per second)
+%%%
+%%% And the winner is... the function that was designed to this very
+%%% thing!
+%%%
+-mode(compile).
+
+-include("bench.hrl").
+
+-define(L, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).
+-define(CONCATS, 100).
+
+-define(TRIALS, 10000).
+
+main(_) ->
+    test_concat(),
+    test_plusplus(),
+    test_cons().
+
+test_concat() ->
+    Lol = lists:duplicate(?CONCATS, ?L),
+    Target = lists:concat(Lol),
+    bench(
+      "concat",
+      fun() -> concat(Lol, Target) end,
+      ?TRIALS).
+
+concat(Lol, Target) ->
+    Target = lists:concat(Lol).
+
+test_plusplus() ->
+    Lol = lists:duplicate(?CONCATS, ?L),
+    Target = lists:concat(Lol),
+    bench(
+      "plusplus",
+      fun() -> plusplus(Lol, Target) end,
+      ?TRIALS).
+
+plusplus(Lol, Target) ->
+    plusplus_acc(Lol, Target, []).
+
+plusplus_acc([L|Rest], Target, Acc) ->
+    plusplus_acc(Rest, Target, Acc ++ L);
+plusplus_acc([], Target, Acc) ->
+    Target = Acc.
+
+test_cons() ->
+    Lol = lists:duplicate(?CONCATS, ?L),
+    Target = lists:concat(Lol),
+    bench(
+      "cons",
+      fun() -> cons(Lol, Target) end,
+      ?TRIALS).
+
+cons(Lol, Target) ->
+    cons_acc(Lol, Target, []).
+
+cons_acc([L|Rest], Target, Acc) ->
+    cons_acc(Rest, Target, cons_acc(L, Acc));
+cons_acc([], Target, Acc) ->
+    Target = lists:reverse(Acc).
+
+cons_acc([X|Rest], Acc) ->
+    cons_acc(Rest, [X|Acc]);
+cons_acc([], Acc) ->
+    Acc.

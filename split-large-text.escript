@@ -11,13 +11,17 @@
 %%%
 %%% These are representative of the results on my laptop (Erlang 18)
 %%%
-%%% re_string:    349.630 us (2860.17 per second)
-%%% re_binary:     60.838 us (16437.10 per second)
-%%% binary_split: 157.960 us (6330.72 per second)
+%%% re_string:          349.630 us (2860.17 per second)
+%%% re_binary:           60.838 us (16437.10 per second)
+%%% re_binary_compiled:  59.579 us (16784.44 per second)
+%%% binary_split:       157.960 us (6330.72 per second)
 %%%
 %%% In the case of these larger files, the regular expression out
 %%% performs binary split provided a binary is returned rather than a
 %%% list.
+%%%
+%%% It's interesting that compiling the pattern provides a negligible
+%%% improvement.
 %%%
 -mode(compile).
 
@@ -35,6 +39,7 @@ main(_) ->
     Expected = ?CHUNKS + 1,
     test_re_string(Str, ?DELIMITER, Expected),
     test_re_binary(Str, ?DELIMITER, Expected),
+    test_re_binary_compiled(Str, ?DELIMITER, Expected),
     test_binary_split(Str, ?DELIMITER, Expected).
 
 test_re_string(Str, Delim, Expected) ->
@@ -55,6 +60,17 @@ test_re_binary(Str, Delim, Expected) ->
 
 split_re_binary(Str, Delim, Expected) ->
     Parts = re:split(Str, Delim, [{return, binary}]),
+    Expected = length(Parts).
+
+test_re_binary_compiled(Str, Delim, Expected) ->
+    {ok, Compiled} = re:compile(Delim),
+    bench(
+      "re_binary_compiled",
+      fun() -> split_re_binary_compiled(Str, Compiled, Expected) end,
+      ?TRIALS).
+
+split_re_binary_compiled(Str, Compiled, Expected) ->
+    Parts = re:split(Str, Compiled, [{return, binary}]),
     Expected = length(Parts).
 
 test_binary_split(Str, Delim, Expected) ->

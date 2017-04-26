@@ -1,0 +1,112 @@
+#!/usr/bin/env escript
+%%%
+%%% What's the fastest way to generate an etag [1] from a date?
+%%%
+%%% The date is initially represented as a datetime() as per the
+%%% the calendar module. [2]
+%%%
+%%% [1] https://tools.ietf.org/html/rfc7232#section-2.3
+%%%
+%%% [2] http://erlang.org/doc/man/calendar.html
+%%%
+%%% Options:
+%%%
+%%% - base64 encode a term_to_binary of the date
+%%% - base64 encode a term_to_binary of the date as int
+%%% - base64 a hand encoded date as binary
+%%% - String of a hash of the date
+%%% - String of the date epoch
+%%% - String representation of the date
+%%%
+%%% Sample results:
+%%%
+%%%    date_term_to_binary:  1.636  us  (611153.18   per  second)
+%%%    int_term_to_binary:   0.881  us  (1135648.69  per  second)
+%%%    date_to_binary:       0.746  us  (1339992.20  per  second)
+%%%    hash:                 0.156  us  (6424505.63  per  second)
+%%%    epoch_string:         0.299  us  (3344112.52  per  second)
+%%%    date_string:          0.215  us  (4645717.58  per  second)
+%%%
+%%% Not surprisingly, the obvious losers are the ones that use base64
+%%% encoding.
+%%%
+-mode(compile).
+
+-include("bench.hrl").
+
+-define(date, {{2016,12,21},{20,30,37}}).
+
+-define(TRIALS, 1000000).
+
+main(_) ->
+    test_date_term_to_binary(),
+    test_int_term_to_binary(),
+    test_date_to_binary(),
+    test_hash(),
+    test_epoch_string(),
+    test_date_string().
+
+test_date_term_to_binary() ->
+    bench(
+      "date_term_to_binary",
+      fun() -> date_term_to_binary(?date) end,
+      ?TRIALS).
+
+date_term_to_binary(D) ->
+    Encoded = term_to_binary(D),
+    <<"g2gCaANiAAAH4GEMYRVoA2EUYR5hJQ==">> = base64:encode(Encoded).
+
+test_int_term_to_binary() ->
+    bench(
+      "int_term_to_binary",
+      fun() -> int_term_to_binary(?date) end,
+      ?TRIALS).
+
+int_term_to_binary(D) ->
+    Timestamp = calendar:datetime_to_gregorian_seconds(D) - 62167219200,
+    Encoded = term_to_binary(Timestamp),
+    <<"g2JYWuZt">> = base64:encode(Encoded).
+
+test_date_to_binary() ->
+    bench(
+      "date_to_binary",
+      fun() -> date_to_binary(?date) end,
+      ?TRIALS).
+
+date_to_binary({{Y, M, D}, {H, N, S}}) ->
+    Encoded = <<Y:16, M, D, H, N, S>>,
+    <<"B+AMFRQeJQ==">> = base64:encode(Encoded).
+
+test_hash() ->
+    bench(
+      "hash",
+      fun() -> hash(?date) end,
+      ?TRIALS).
+
+hash(D) ->
+    "2520201254" = integer_to_list(erlang:phash2(D, 4294967296)).
+
+test_epoch_string() ->
+    bench(
+      "epoch_string",
+      fun() -> epoch_string(?date) end,
+      ?TRIALS).
+
+epoch_string(D) ->
+    Timestamp = calendar:datetime_to_gregorian_seconds(D) - 62167219200,
+    "1482352237" = integer_to_list(Timestamp).
+
+test_date_string() ->
+    bench(
+      "date_string",
+      fun() -> date_string(?date) end,
+      ?TRIALS).
+
+date_string({{Y, M, D}, {H, N, S}}) ->
+    ["2016","12","21","20", "30","37"]
+        = [integer_to_list(Y),
+           integer_to_list(M),
+           integer_to_list(D),
+           integer_to_list(H),
+           integer_to_list(N),
+           integer_to_list(S)].
